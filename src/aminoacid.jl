@@ -24,14 +24,14 @@ encoded_data_eltype(::Type{AminoAcid}) = UInt8
 function Base.convert(::Type{AminoAcid}, c::Char)
     aa = tryparse(AminoAcid, c)
     if aa === nothing
-        throw(InexactError(:convert, AminoAcid, c))
+        throw(InexactError(:convert, AminoAcid, repr(c)))
     end
     return aa
 end
 AminoAcid(c::Char) = convert(AminoAcid, c)
 
 Base.convert(::Type{Char}, aa::AminoAcid) = aa_to_char[encoded_data(aa) + 1]
-Char(aa::AminoAcid) = convert(Char, aa)
+Base.Char(aa::AminoAcid) = convert(Char, aa)
 
 
 # Amino acid encoding definition
@@ -192,17 +192,17 @@ function iscertain(aa::AminoAcid)
     return AA_A ≤ aa ≤ AA_U || aa == AA_Term
 end
 
-"""
-    gap(AminoAcid)
-
-Return `AA_Gap`.
-"""
 gap(::Type{AminoAcid}) = AA_Gap
 
 """
     compatbits(aa::AminoAcid)
 
 Return the compatibility bits of `aa` as `UInt32`.
+The resulting `UInt32` has one bit set per amino acid
+it is compatible with.
+
+For example, `J` is compatible with `I` (bit 10) and `L` (bit 11),
+and so is `0x00000600`.
 
 Examples
 --------
@@ -211,9 +211,17 @@ Examples
 julia> compatbits(AA_A)
 0x00000001
 
+julia> compatbits(AA_E)
+0x00000040
+
 julia> compatbits(AA_J)
 0x00000600
 
+julia> compatbits(AA_X)
+0x003fffff
+
+julia> compatbits(AA_Gap)
+0x00000000
 ```
 """
 compatbits(aa::AminoAcid) = @inbounds compatbits_aa[encoded_data(aa) + 1]

@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- `Base.parse` and `Base.tryparse` for `DNA` and `RNA`
+
+## [4.0.3]
+- Update dependencies
+
+## [4.0.2]
+- Changed lookup tables to Tuple for performance improvements
+
+## [4.0.1]
+- Fixed missing iterate and length methods
 
 ## [4.0.0]
 ### Added
