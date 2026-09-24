@@ -70,12 +70,14 @@ RNA(c::Char) = convert(RNA, c)
 function Base.convert(::Type{Char}, nt::DNA)
     return dna_to_char[encoded_data(nt)+1]
 end
-Char(nt::DNA) = convert(Char, nt)
+
+Base.Char(nt::DNA) = convert(Char, nt)
 
 function Base.convert(::Type{Char}, nt::RNA)
     return rna_to_char[encoded_data(nt)+1]
 end
-Char(nt::RNA) = convert(Char, nt)
+
+Base.Char(nt::RNA) = convert(Char, nt)
 
 function Base.tryparse(::Type{DNA}, c::Char)
     c > '\uff' && return nothing
@@ -372,18 +374,7 @@ julia> ACGUN
 """
 const ACGUN = (RNA_A, RNA_C, RNA_G, RNA_U, RNA_N)
 
-"""
-    gap(DNA)
-
-Return `DNA_Gap`.
-"""
 gap(::Type{DNA}) = DNA_Gap
-
-"""
-    gap(RNA)
-
-Return `RNA_Gap`.
-"""
 gap(::Type{RNA}) = RNA_Gap
 
 """
@@ -456,12 +447,12 @@ RNA_A
 
 ```
 """
-function complement(nt::NucleicAcid)
-    bits = compatbits(nt)
-    return encode(
-        typeof(nt),
-        (bits & 0x01) << 3 | (bits & 0x08) >> 3 |
-        (bits & 0x02) << 1 | (bits & 0x04) >> 1)
+function complement(nt::Union{DNA, RNA})
+    # This is essentially a lookup table of 16 x 4 bits.
+    # It's the concatenation of the bitpatterns of the nucleotides,
+    # in order, complemented.
+    u64 = 0xf7b3d591e6a2c480 >>> ((4 * encoded_data(nt)) & 63)
+    reinterpret(typeof(nt), (u64 % UInt8) & 0x0f)
 end
 
 function Base.isvalid(::Type{T}, x::Integer) where T <: NucleicAcid
@@ -489,6 +480,11 @@ end
     compatbits(nt::NucleicAcid)
 
 Return the compatibility bits of `nt` as `UInt8`.
+The resulting `UInt8` has the lower four bits set
+if `nt` is compatible with `A`, `C`, `G` and `T/U`, respectively.
+
+Hence, `RNA_Gap` is `0x00` (not compatible with any nucleotide),
+and `DNA_W` is `0x09` (compatible with `A` and `T`)
 
 Examples
 --------
@@ -503,6 +499,11 @@ julia> compatbits(DNA_C)
 julia> compatbits(DNA_N)
 0x0f
 
+julia> compatbits(DNA_W)
+0x09
+
+julia> compatbits(RNA_Gap)
+0x00
 ```
 """
 @inline function compatbits(nt::NucleicAcid)
